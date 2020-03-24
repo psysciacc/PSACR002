@@ -1,0 +1,173 @@
+---
+title: "PSA CR 002: Cognitive Reappraisal"
+date: "24/03/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r}
+#devtools::install_github("scienceverse/scienceverse")
+library(scienceverse)
+library(tidyverse)
+library(purrr)
+library(afex)
+library(broom)
+```
+
+## Set up Study
+
+```{r}
+study2 <- study("PSA CR 002: Using Reappraisal to Regulate Negative Emotion Concerning COVID-19")
+```
+
+## Confirmaory Hypothesis
+
+```{r}
+
+alpha <- 0.05 / 3
+
+study2 <- add_hypothesis(study2, "confirmatory", "Using reappraisal would reduce negative emotion, catastrophic thoughts, and rumination concerning COVID-19.") %>%
+  add_analysis("negemo", {
+    a <- afex::aov_ez(id = "id", 
+                      dv = "negemo",
+                      between = "condition", 
+                      data = dat)
+    a$anova_table
+  }) %>%
+  add_criterion("negemo", "Pr(>F)", "<", alpha) %>%
+  add_analysis("catthoughts", {
+    a <- afex::aov_ez(id = "id", 
+                      dv = "catthoughts",
+                      between = "condition", 
+                      data = dat)
+    a$anova_table
+  }) %>%
+  add_criterion("catthoughts", "Pr(>F)", "<", alpha) %>%
+  add_analysis("rumination", {
+    a <- afex::aov_ez(id = "id", 
+                      dv = "rumination",
+                      between = "condition", 
+                      data = dat)
+    a$anova_table
+  }) %>%
+  add_criterion("rumination", "Pr(>F)", "<", alpha) %>%
+  add_eval("corroboration", "There is a significant main effect of condition on negative emotion, catastrophic thoughts, or rumination", "negemo | catthoughts | rumination")
+
+```
+
+## Manipulation Checks
+
+```{r}
+
+alpha <- 0.05
+
+study2 <- add_hypothesis(study2, "manip_check", "emotion regulation frequency and success") %>%
+  add_analysis("frequency", {
+    a <- afex::aov_ez(id = "id", 
+                      dv = "frequency",
+                      between = "condition", 
+                      data = dat)
+    a$anova_table
+  }) %>%
+  add_criterion("frequency", "Pr(>F)", "<", alpha) %>%
+  add_analysis("success", {
+    a <- afex::aov_ez(id = "id", 
+                      dv = "success",
+                      between = "condition", 
+                      data = dat)
+    a$anova_table
+  }) %>%
+  add_criterion("success", "Pr(>F)", "<", alpha) %>%
+  add_eval("corroboration", "There is a significant main effect of condition on frequency and success", "frequency & success")
+```
+
+## Exploratory Analyses
+
+```{r}
+
+alpha <- 0.05 / 3
+
+study2 <- add_hypothesis(study2, "exploratory", "resilience, beliefs and behavioral intentions around COVID-19") %>%
+  add_analysis("resilience", {
+    a <- afex::aov_ez(id = "id", 
+                      dv = "resilience",
+                      between = "condition", 
+                      data = dat)
+    a$anova_table
+  }) %>%
+  add_criterion("resilience", "Pr(>F)", "<", alpha) %>%
+  add_analysis("beliefs", {
+    a <- afex::aov_ez(id = "id", 
+                      dv = "beliefs",
+                      between = "condition", 
+                      data = dat)
+    a$anova_table
+  }) %>%
+  add_criterion("beliefs", "Pr(>F)", "<", alpha) %>%
+  add_analysis("intentions", {
+    a <- afex::aov_ez(id = "id", 
+                      dv = "intentions",
+                      between = "condition", 
+                      data = dat)
+    a$anova_table
+  }) %>%
+  add_criterion("intentions", "Pr(>F)", "<", alpha) %>%
+  add_eval("corroboration", "There is a significant main effect of condition on resilience, beliefs, or intentions", "resilience | beliefs | intentions")
+```
+
+## Simulate Data
+
+```{r}
+study2 <- add_sim_data(study2, "dat", 
+    between = list(
+      condition = c("reappraisal", "suppression", "noreg"),
+      sex = c("male", "female")
+    ), 
+    within = list(
+      measure = c("negemo", 
+                  "catthoughts", 
+                  "rumination",
+                  "frequency", 
+                  "success", 
+                  "resilience", 
+                  "beliefs", 
+                  "intentions")
+    ),
+    n = 90,
+    mu = list(reappraisal_male = 0.36, 
+              reappraisal_female = 0.36,
+              suppression_male = 0,
+              suppression_female = 0,
+              noreg_male = 0,
+              noreg_female = 0
+              ),
+    dv = "score",
+    long = FALSE
+  )
+```
+
+```{r, out.width = "100%", fig.width=8, fig.height=5}
+study2$data[[1]]$data %>%
+  gather(measure, score, negemo:intentions) %>%
+  ggplot(aes(condition, score)) + 
+  geom_violin() + 
+  stat_summary(fun.data = mean_se) +
+  facet_wrap(~measure, nrow = 2)
+```
+
+
+```{r}
+study2 <- study_analyse(study2)
+```
+
+```{r}
+study_report(study2, "prereg", "PSACR_002_prereg.html")
+study_report(study2, "postreg", "PSACR_002_post_sim.html")
+```
+
+
+
